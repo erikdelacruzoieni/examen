@@ -1,0 +1,635 @@
+snippet histograma_sturges
+	#------------Regla Sturges-----------------#
+	# DEFINE f1!
+	hist(x = f1, probability = TRUE, xlab = "datos", ylab = "Densidad",
+	main = "Regla de Sturges", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}) )
+	rug(f1)
+	nclass.Sturges(f1) # nº clases recomend
+
+snippet histograma_scott
+	#------------Regla Scott-----------------#
+	# DEFINE f1!
+	h <- hist(x = f1, breaks = "Scott", probability = TRUE, xlab = "Datos X",
+	ylab = "Densidad", main = "Regla de Scott", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}) )
+	rug(f1)
+	nclass.scott(f1) # nº clases recomend
+	
+	n <- length(datos)
+	k <- ceiling(log2(n) + 1) # nº de clases
+	rango <- max(datos) - min(datos)
+	ancho_caja <- rango / k
+	print(ancho_caja) # ancho de caja b óptimo
+
+
+snippet histograma_wand
+	#------------Regla Wand-----------------#
+	library(KernSmooth)
+	# DEFINE f1!
+	b <- dpih(x = f1) # ancho de caja sugerido por la tecnica wand
+	cat('El ancho de caja según la regla de Wand:', b)
+	cajas <- seq(min(f1), max(f1)+b, by=b)
+	h <- hist(x = f1, breaks = cajas, probability = TRUE, xlab = "datos",
+	ylab = "Densidad", main = "Regla de Wand", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}) )
+	rug(f1)
+
+snippet limites
+	#------------Limites de f1-----------------#
+	# DEFINE f1!
+	xmin <- min(f1)
+	xmax <- max(f1)
+	h <- hist(f1, probability = TRUE, plot = FALSE)
+	ymax <- max(h\$density)
+	ymin <- min(h\$density)
+
+snippet estimador_nucleo_selector_manual
+	#------------Estimador nucleo selector manual-----------------#
+	library(manipulate)
+	# DEFINE f1!
+	manipulate({
+	plot(density(f1, bw=h), t="l", lwd=2, col="red", xlab="datos", 
+	ylab="Densidad", main="Selector Normal Auto.", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}))
+	}, h = slider(min = 0.01, max = 10, initial = 0.5, step = 0.01))
+
+snippet estimador_nucleo_selector_normal
+	#------------EstNucleo con Selector por referencia normal-----------------#
+	library(ks)
+	library(sm)
+	# DEFINE f1!
+	h_NS <- hns(f1)
+	plot(density(f1, bw=h_NS), t="l", lwd=2, col="red", xlab="datos", 
+	ylab="Densidad", main="Selector Normal", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}))
+	sm.density(f1, h=h_NS, se=TRUE, xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax})) # Incluye IC
+	cat("Valor del ancho de banda (selector normal):", h_NS)
+
+snippet estimador_nucleo_selector_plug_in
+	#------------EstNucleo con Selector plug-in-----------------#
+	library(sm)
+	library(ks)
+	# DEFINE f1!
+	h_PI <- hpi(f1)
+	plot(density(f1, bw=h_PI), t="l", lwd=2, col="blue", xlab="datos", 
+	ylab="Densidad", main="Selector plug-in", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}))
+	sm.density(f1, h=h_PI, se=TRUE, xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax})) # Incluye IC
+	cat("Valor de h:", h_PI)
+
+snippet estimador_nucleo_selector_vc
+	#------------Est. nucleo con Selector por validación cruzada-----------------#
+	library(sm)
+	library(ks)
+	# DEFINE f1!
+	h_CV <- hlscv(f1)
+	plot(density(f1, bw=h_CV), t="l", lwd=2, col="orange", xlab="datos", 
+	ylab="Densidad", main="Selector por CV", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}))
+	sm.density(f1, h=h_CV, se=TRUE, xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax})) # Incluye IC
+	cat("Valor de h:", h_CV)
+
+snippet estimador_nucleo_comparacion_selectores
+	#------------Comparación de selectores-----------------#
+	# COMPARAMOS SELECTORES: NORMAL, VC, PLUG IN
+	library(sm)
+	library(ks)
+	# DEFINE f1!
+	h_NS <- hns(f1)
+	h_CV <- hlscv(f1)
+	h_PI <- hpi(f1)
+	plot(density(f1, bw=h_NS), t="l", lwd=2, col="red", xlab="datos", 
+	ylab="Densidad", main="Selectores", xlim = c(${1:xmin}, ${2:xmax}), ylim = c(${3:ymin}, ${4:ymax}))
+	lines(density(f1, bw=h_PI), lwd=2, col="blue")
+	lines(density(f1, bw=h_CV), lwd=2, col="orange")
+	rug(f1)
+	
+	legend("topright", legend=c("Normal", "Plug-in", "CV"), 
+	col=c("red", "blue", "orange"), lwd=2, lty=1)
+	
+
+snippet estimador__nucleo_multivariante_dos_variables
+	#------------Estimador nucleo multivariante-----------------#
+	library(sm)
+	library(ks)
+	datos <- iris[,1:2]
+	
+	x11()
+	plot(datos, xlim=c(4,8), ylim=c(1,5))
+	
+	H_ancho_banda <- Hpi(datos, pilot="unconstr")
+	f_hat <- kde(x=datos, H=H_ancho_banda) #estimador nucleo de f(x,y) 
+	
+	plot(f_hat, lwd=2, drawlabels=FALSE, col=1, xlim=c(4,8), ylim=c(1,5), cont=10*(1:9))
+	points(datos, pch=21, bg="blue")
+
+snippet analisis_discriminante
+	#------------Analisis discriminante NO Param basado en el
+	#estimador nucleo de la densisdad----------#
+	library(sm)
+	library(ks)
+	datos <- iris[,1:2] # cojemos dos varibales f(x,y)
+	etiquetas<-iris[,5]  # columna  5 tiene los grupos
+	clas<-kda(datos, etiquetas)
+	x11()
+	plot(clas, drawlabels=FALSE, xlim=c(4,8), ylim=c(1,5), cont=0)
+	points(datos, bg="blue", pch=as.numeric(etiquetas))
+
+snippet analisis_cluster
+	#--------El algoritmo mean shift para  no paramatrico basado en la
+	# densidad-----#
+	library(sm)
+	library(ks)
+	
+	x11()
+	plot(faithful) #sustituye los datos
+	H<-Hpi(faithful)
+	f_hat<-kde(faithful, H=H)
+	kms.faith<-kms(faithful, H=H, verbose=TRUE)
+	plot(kms.faith, pch=19, col=c("blue","red"))
+	plot(f_hat, add=TRUE, drawlabels=FALSE, col="black", cont=10*(1:9))
+
+snippet regresion
+	# Asignamos los datos
+	x<- datos$v1 # VARIABLE INDEPENDIENTE X
+	y<- datos$v2 # VARIABLE DEPENDIENTE Y
+
+snippet regresion_estimador_nucleo
+	#------------Regresión con estimador tipo nucleo normal-----------------#
+	h = ${1:ancho_banda} # ancho de banda
+	
+	m_hat <- ksmooth(${2:x}, ${3:y}, bandwidth=h, kernel="normal") #Estimador nucleo de m(x) 
+	plot(${2:x},${3:y) # Grafica de los puntos
+	lines(m_hat, col="blue", lwd=2) # Estimacion de la densidad
+	cat('Valor de h:', h)
+
+snippet regresion_estimador_nucleo_selector_VC
+	#------------Regresión con estimador tipo nucleo normal, H por VC-----------------#
+	library(locpol)
+	library(np)
+	
+	# 2 FORMAS DE calcular h por VC
+	h1_CV <- regCVBwSelC(x=x, y=y, deg=0)
+	h2_CV <- npregbw(xdat=x, ydat=y, regtype="lc", bwmethod="cv.ls")
+	cat("Valor de h1_CV:", h1_CV)
+	cat("Valor de h2_CV:", h2_CV$bw)
+	
+	x11()
+	plot(${2:x},${3:y})
+	mhat_h1 <- ksmooth(${2:x}, ${3:y}, bandwidth=h1_CV, kernel="normal")
+	lines(mhat_h1, col="blue", lwd=2)
+	mhat_h2 <- ksmooth(${2:x}, ${3:y}, bandwidth=h2_CV$bw, kernel="normal")
+	lines(mhat_h2, col="red", lwd=2)
+
+
+snippet regresion_estimador_nucleo_manual
+	#------------Regresión con estimador tipo nucleo normal, b Interactivo-----------------#
+	library(manipulate)
+	manipulate({
+	plot(x, y)
+	mhat <- ksmooth(x, y, bandwidth=h, kernel="normal")
+	lines(mhat, col="blue", lwd=2)
+	rejilla <- mhat\$x
+	}, h = slider(min = 0.01, max = ${2:x} , initial = 0.5, step = 0.01))
+	
+	# OPCION 2 POR SI NO FUNCIONA LA ANTERIOR:
+	sm.regression(x=x, y=y, panel=TRUE)
+
+snippet regresion_local_lineal_selector_VC
+	#------------Regresión local lineal, selector por validación cruzada-----------------#
+	library(KernSmooth)
+	library(locpol)
+	library(np)
+	# 2 formas de calcular h por VC
+	hcv1 <- npregbw(xdat=x, ydat=y, regtype="ll", bwmethod="cv.ls")
+	hcv2 <- regCVBwSelC(x=x, y=y, deg=1, kernel=gaussK)
+	cat("Valor de h1:", hcv1$bw)
+	cat("Valor de h2:", hcv2)
+	# creamos rejilla
+	min_x <- min(x)
+	max_x <- max(x)
+	rejilla <- seq(min_x, max_x, length.out = 100) 
+	llcv <- npreg(bws = hcv2, txdat = x, tydat = y, exdat=rejilla) # estimador lineal local
+	plot(x, y)
+	lines(llcv\$eval[,1], llcv\$mean, lwd=2, col="red")
+	
+
+snippet regresion_local_lineal_selector_plugIn
+	#------------Regresión local, selector por plugin-----------------#
+	library(KernSmooth) # Esta y locpol no permiten
+	library(locpol) #escoger los puntos de evaluacion, debe ser una rejilla
+	library(np)
+	# 2 formas de calcular h con plug in
+	hpi1 <- dpill(x=x, y=y) # + fiable
+	hpi2 <- pluginBw(x=x, y=y, deg=1, kernel=gaussK) 
+	cat("Valor de h1:", hpi1)
+	cat("Valor de h2:", hpi2)
+	# creamos rejilla
+	min_x <- min(x)
+	max_x <- max(x)
+	rejilla <- seq(min_x, max_x, length.out = 100) 
+	llpi <- npreg(bws = hpi1, txdat = x, tydat = y, exdat=rejilla) # estimador lineal local
+	plot(x, y)
+	lines(llpi$eval[,1], llpi$mean, lwd=2, col="blue")
+
+snippet regresograma
+	#------------Regresograma-----------------#
+	library(HoRM)
+	#especificar x,y, nº cajas
+	ncajas<-eleccion_mia 
+	r <- regressogram(x=x, y=y, nbins=ncajas)
+	plot(r)
+
+snippet regresograma_ncajas_automatico
+	#------------Regresograma con tamaño de caja elegido automáticamente-----------#
+	library(binsreg)
+	b <- binsreg(y, x)
+	bb<-binsreg(${2:x}, ${3:y}, data=${1:data})
+	binsregselect(y, x) # distintos metodos te sugieren distintos ncajas
+
+snippet regresion_splines
+	#------------Regresion con splines-----------------#
+	
+	# Si no se especifica spar, lo coge por validacion cruzada
+	ss <- smooth.spline(x=x, y=y, spar = NULL)
+	plot(x,y)
+	min_x <- min(x)
+	max_x <- max(x)
+	rejilla <- seq(min_x, max_x, length.out = 100) 
+	lines(ss, lwd=2, col="blue")
+	#-- predicciones --#
+	predict(ss, x = c(0,0.2,0.8))
+
+snippet regresion_logistica_global
+	#------------Regresion logística global-----------------#
+	# y in (0,1)
+	data = data.frame(x =${1:x}, y=${2:y}) #Cambiar por tu dataFrame
+	r_log_global<-glm(y~x, data=data, family = binomial)
+	plot(data,pch="|")
+	rej <- seq(min(data$x),max(data$x),length=100)
+	y.rlg <- predict(r_log_global, newdata=data.frame(x=rej), type="resp")
+	lines(rej, y.rlg, col="blue", lwd=2)
+
+snippet regresion_logistica_local
+	#------------Regresion logística local-----------------#
+	library(locfit)
+	data = data.frame(x =${1:x}, y=${2:y}) #Cambiar por tu dataFrame
+	reg_log_local <- locfit(y~x, data=data)
+	plot(data,pch="|")
+	lines(reg_log_local, col="red", lwd=2)
+	
+
+snippet regresion_logit_comparacion_global_local
+	#------------Comparación logist local(red) / global(blue)-----------------#
+	library(locfit)
+	data = data.frame(x =${1:x}, y=${2:y}) #Cambiar por tu dataFrame
+	rlg<-glm(y~x, data=data, family = binomial)
+	rll <- locfit(y~x, data=data)
+	plot(data,pch="|")
+	rej <- seq(min(data$x),max(data$x),length=100)
+	y.rlg <- predict(rlg, newdata=data.frame(x=rej), type="resp")
+	lines(rej, y.rlg, col="blue", lwd=2)
+	lines(rll, col="red", lwd=2)
+
+snippet numeros_aleatorios_con_dist_normal
+	#------------Simulación normal números aleatorios-----------------#
+	n <- ${1:tamaño}
+	media <- ${2:media}
+	desviacion_std <- ${3:desviacion_tipica}
+	muestra <-  rnorm(n, mean = media, sd = desviacion_std)
+
+snippet numeros_aleatorios_con_dist_exponencial
+	#------------Simulación exponencial números aleatorios-----------------#
+	n <- ${1:tamaño}
+	muestra <-  rexpo(n, lambda = ${1:lambda})
+	
+
+snippet ejercicio
+	##################################### 
+	##################################### 
+	#####################################
+	# Ejercicio ${1:numero} 
+
+snippet contraste_signos
+	#------------Contraste de Signos-----------------#
+	library(DescTools)
+	vector_data <- data$ columna 
+	resultado<- SignTest(x=vector_data, mu=mediana_0, alternative= {c("two.sided", "less", "greater"))
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se rechaza la hipótesis nula H0 y se acepta la hipótesis alternativa H1.")
+	}
+
+snippet contrastes_explicacion_Hipotesis_alternative
+	#------------------Explicacion--------------------------#
+	#argumento alternative en la funcion SignTest 
+	
+	#"two.sided": Utilizas este cuando tu hipótesis alternativa 
+	#sugiere que la mediana difiere de mu (es decir, es mayor o menor),
+	# pero no especificas una dirección. Es una prueba bilateral.
+	
+	#"less": Utilizas este cuando tu hipótesis alternativa sugiere 
+	#que la mediana es menor que mu. Es una prueba unilateral.
+	
+	#"greater": Utilizas este cuando tu hipótesis alternativa sugiere 
+	#que la mediana es mayor que mu. Es otra forma de prueba unilateral.
+	
+
+snippet contraste_signos_variables_apareadas
+	#------------Contraste de signos para variables apareadas-----------------#
+	antes <- data\$ ${1:columna_antes} 
+	despues<- data\$ ${2:columna_despues} 
+	resultado<- SignTest(x=antes, y=despues, mu=0, alternative= c("two.sided", "less", "greater"))
+	# S: Es el numero de las diferencias positivas. 
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0 (la mediana de la diferencia entre las dos muestras es mayor o igual a cero ).")
+	} else {
+	print("Se rechaza la hipótesis nula H0 y se acepta la hipótesis alternativa H1 (la mediana es mayor que cero.).")
+	}
+
+
+snippet contraste_rangos_signados_variables_apareadas_Wilcoxon
+	#------------Contraste de Rangos Signados para variables apareadas-----------------#
+	#  Aplicable cuando la distribucion es simetrica
+	antes <- data$ columna_antes 
+	despues<- data$ columna_despues 
+	resultado<- wilcox.test(x=antes, y=despues, mu=0, paired=TRUE, alternative= c("two.sided", "less", "greater"))
+	# alternative hypothesis: true location shift is greater than 0.
+	# Significa que la mediana de las diferencias entre las parejas de observaciones 
+	# (antes vs. después) es mayor que 0. 
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0 (no hay evidencia estadística suficiente para afirmar que las mediciones despues son significativamente mayores que las mediciones antes).")
+	} else {
+	print("Se rechaza la hipótesis nula H0 y se acepta la hipótesis alternativa H1 ( indicando que las mediciones despues son estadísticamente significativas mayores que las mediciones antes, mostrando que existe un cambio positivo tras la intervención o el tratamiento).")
+	}
+	
+
+snippet contraste_de_desplazamiento_de_la_mediana_variables_independientes_Mann_Whitney
+	#------------Contraste de desplazamiento de la mediana-----------------#
+	#tenemos muestras X1,...,Xn e Y1,...Ym independientes, que provienen de distribuciones que solo difieren en un desplazamiento de medianas.
+	# NO SON MUESTRAS APAREADAS
+	muestrax<-data\$ ${1:variable_X} 
+	muestray<-data\$ ${2:variable_Y} 
+	#H_0: m_X=m_Y frente a la alternativa H_1: m_X<m_Y; alternative= less (y-x)
+	resultado<-wilcox.test(x=muestrax, y=muestray, mu=0, paired=FALSE, alternative= c("two.sided", "less", "greater"))
+	# Evaluar el p-valor
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se rechaza la hipótesis nula H0 y se acepta la hipótesis alternativa H1.")
+	}
+	
+
+
+snippet contraste_varias_medianas_Kruskal_Wallis
+	#------------Contraste de desplazamiento de la mediana de varias variables (variables independientes)-----------------#
+	rendimientos<-c(83, 91, 94, 89, 89, 96, 91, 92, 90, 93, 91, 95,
+	86, 91, 89, 92, 90, 91, 90, 81, 83, 84, 83, 88, 91, 89, 84,
+	82, 86, 84, 84, 91, 89, 90, 91, 83,101,100, 91, 93, 96, 95,
+	94, 98, 95, 92, 80, 79, 82, 78, 82, 81, 77, 79, 81, 80, 81,
+	81, 81, 94, 96, 101,81, 78)
+	metodos<-as.factor(c(rep(1,17), rep(2,19), rep(3,13), rep(4,15)))
+	datos<-data.frame(rendimientos, metodos)
+	tapply(rendimientos, metodos, median) # mediana de cada grupo
+	resultado<-kruskal.test(rendimientos~metodos, data=datos)
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se acepta la hipótesis alternativa H1(existe almenos una diferencia sig entre todas);  Realizamos Comparaciones multiples ")
+	}
+	
+	#..................Contraste multiple..................#
+	library(PMCMRplus)
+	kwAllPairsConoverTest(rendimientos~metodos, datos)
+
+snippet contraste_muestras_relacionadas_Friedman
+	#------------Contraste de muestras realcionadas Friedman-----------------#
+	datosimp <- matrix(c(4.7, 3.8, 8, 13.6, 18.1, 6.8, 8.5, 13,
+	16.8, 26.7, 9, 9.5, 12.9, 17.7, 23.6), ncol=3)
+	grupos <- paste("Impr", 1:3, sep="")
+	bloques <- paste("Doc", 1:5, sep="")
+	colnames(datosimp) <- grupos
+	rownames(datosimp)<- bloques
+	apply(datosimp,2,median)
+	datosimp2<-data.frame(tiempo=c(4.7, 3.8, 8, 13.6, 18.1, 6.8, 8.5, 13,
+	16.8, 26.7, 9, 9.5, 12.9, 17.7, 23.6),
+	impresora=rep(grupos,c(5,5,5)),
+	documento=rep(bloques,3))
+	resultado<- friedman.test(tiempo~impresora|documento, data=datosimp2)
+	if (resultado$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se acepta la hipótesis alternativa H1 (comp mult ).")
+	}
+	resultado1<- friedman.test(datosimp)
+	if (resultado1$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se acepta la hipótesis alternativa H1 (comp mult ).")
+	}
+	#..................Contraste multiple..................#
+	frdAllPairsExactTest(datosimp)
+
+snippet funcion_de_distribucion_empirica
+	#------------Función de distribución empírica-----------------#
+	muestra<-rnorm(100)
+	Fn<-ecdf(muestra)
+	x11()
+	plot(Fn)
+	rug(muestra)
+	curve(pnorm, from=-4, to=4, lwd=2, add=TRUE, col="blue")
+
+snippet contraste_bondad_Kolmogorov_Smirnov
+	#------------Función de distribución empírica-----------------#
+	#Hipotesis nula: F = F0
+	
+	resultado<-ks.test(x=muestra, pnorm) # N(0,1)
+	# Evaluar el p-valor
+	if (resultado_ks$p.value > 0.05) {
+	print("No se rechaza la hipótesis nula H0.")
+	} else {
+	print("Se acepta la hipótesis alternativa H1.")
+	}
+	ks.test(x=muestra, pt, df=3) # tStudent con 3 grados de libertad
+	ks.test(x=muestra, pcauchy, location=0, scale=1) # distribución de Cauchy(0,1)
+
+snippet contraste_bondad_Cramer_Von_Mises
+	library(goftest)
+	library(goft)
+	
+	#Hipostesis nula: F = F0
+	cvm.test(x=muestra, pnorm) # N(0,1)
+	cvm.test(x=muestra, pt, df=3) # tStudent con 3 grados de libertad
+	cvm.test(x=muestra, pcauchy, location=0, scale=1) # distribución de Cauchy(0,1)
+
+snippet contraste_bondad_Anderson_Darling
+	#Hipotesis nula: F = F0
+	ad.test(x=muestra, pnorm) # N(0,1)
+	ad.test(x=muestra, pt, df=3) # tStudent con 3 grados de libertad
+	ad.test(x=muestra, pcauchy, location=0, scale=1) # distribución de Cauchy(0,1)
+
+snippet contraste_de_normalidad_sin_especificar_parametros
+	#------------Contraste de Normalidad-----------------#
+	#Hipotesis nula_ F = N(a,b) pertenece a una familia
+	library(DescTools)
+	LillieTest(x=muestra)
+
+snippet qq_plot
+	#------------------ QQ-plot de la muestra ---------------#
+	# El Q-Q plot para una distribución normal (usar qqnorm)
+	mu <- mean(muestra)
+	sigma <- sd(muestra)
+	x <- rnorm(n, mean = mu, sd = sigma)
+	x11()
+	qqnorm(x) # HAY QUE INDICARLO SIEMPRE.
+	abline(a = mu, b = sigma, col = "red")
+
+
+snippet contraste_normalidad_Shapiro_Wilk_Francia
+	#------------------ Shapiro Wilk  ---------------#
+	shapiro.test(muestra) # H0: Normalidad
+	library(nortest) 
+	sf.test(muestra) #shapiro-Francia
+
+snippet contraste_uniformidad_chi_cuadrado
+	#-------------- Contraste de Uniformidad --------------#
+	# Para contrastar si la muestra viene de una dist unif: especificar el vec_frec_obs de cada clase
+	o<- muestra
+	chisq.test(o)
+	
+	#Si queremos realizar el contraste chi cuadrado para otra distribucion, podemos
+	# utilizar chisq.test para calcular el estadistico de contraste, pero luego
+	# tenemos que calcular el p-valor a mano para utilizar el numero correcto de
+	# grados de libertad.
+	#Contrastar si los datos provienen de una distribucion de Poisson
+	p<-c(dpois(0:3, lambda=media), 1-ppois(3, media))
+	estadistico<-chisq.test(x=o, p=p)$statistic
+	pvalor<-1-pchisq(estadistico, df=5-1-1)
+	pvalor
+	
+	# El chisq.test tambien comprueba la independencia
+	# Ho: independencia; H1:  Dependencia
+
+snippet librerias
+	# TODAS LAS LIBRERIAS
+	library(DescTools)
+	library(nortest)
+	library(goftest)
+	library(goft)
+	library(manipulate)
+	library(KernSmooth)
+	library(locpol)
+	library(np)
+	library(HoRM)
+	library(binsreg)
+	library(locfit)
+	library(PMCMRplus)  
+	library(sm)
+	library(ks)
+
+snippet cargar_datos
+	
+	library(haven)
+	# Leer un archivo SPSS
+	datos_spss <- read_spss("archivo.sav")
+
+snippet examen_año_pasado
+	# Examen año pasado:
+	
+	library(ks)
+	data("tempb")
+	
+	
+	### PROBLEMA 1
+	
+	f1<- tempb$tmax
+	
+	#------------Limites de f1-----------------#
+	xmin <- min(f1)
+	xmax <- max(f1)
+	h <- hist(f1, probability = TRUE, plot = FALSE)  # No graficamos aún
+	ymax <- max(h$density)
+	ymin <- min(h$density)
+	
+	
+	#------------EstNucleo con Selector por validación cruzada-----------------#
+	library(sm)
+	library(ks)
+	h_CV <- hlscv(f1) # el valor de h proporcionado x el modelo es muy malo
+	
+	# prueba elegir h=2
+	
+	x11()
+	plot(density(f1, bw=2), t="l", lwd=2, col="orange", xlab="datos", 
+	     ylab="Densidad", main="Selector por CV", xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	sm.density(f1, h=2, se=TRUE, xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	
+	#------------EstNucleo con Selector plug-in-----------------#
+	library(sm)
+	library(ks)
+	h_PI <- hpi(f1)
+	plot(density(f1, bw=h_PI), t="l", lwd=2, col="blue", xlab="datos", 
+	     ylab="Densidad", main="Selector plug-in", xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	sm.density(f1, h=h_PI, se=TRUE, xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	cat('valor de h', h_PI)
+	
+	#------------Estimador nucleo selector manual-----------------#
+	library(manipulate)
+	manipulate({
+	  h_NS <- hns(f1)
+	  plot(density(f1, bw=h), t="l", lwd=2, col="red", xlab="datos", 
+	       ylab="Densidad", main="Selector por ref Normal", xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	  window()
+	  sm.density(f1, h=h_NS, se=TRUE, xlim = c(xmin, xmax), ylim = c(ymin, ymax))
+	  
+	}, h = slider(min = 0.01, max = 2, initial = 0.5, step = 0.01))
+	
+	
+	### PROBLEMA 2
+	
+	
+	library(sm)
+	data("bonions")
+	
+	x<- bonions$Density
+	y<- bonions$Yield
+	
+	#------------Regresión con estimador tipo nucleo normal, b por VC-----------------#
+	library(locpol)
+	h_CV <- regCVBwSelC(x=x, y=y, deg=0)
+	
+	mhat <- ksmooth(x, y, bandwidth=h_CV, kernel="normal")
+	plot(x,y)
+	lines(mhat, col="blue", lwd=2)
+	
+	#------------Regresión con estimador tipo nucleo normal, b Interactivo-----------------#
+	library(manipulate)
+	manipulate({
+	  #plot(x, y)
+	  mhat <- ksmooth(x, y, bandwidth=h, kernel="normal")
+	  lines(mhat, col="red", lwd=2)
+	  rejilla <- mhat$x
+	}, h = slider(min = 0.01, max = 20, initial = 0.5, step = 0.01))
+	
+	
+	#------------Regresión local, selector por validación cruzada-----------------#
+	
+	library(KernSmooth)
+	library(locpol)
+	library(np)
+	
+	# 2 formas de calcular h por VC
+	hcv1 <- npregbw(xdat=x, ydat=y, regtype="ll", bwmethod="cv.ls")
+	hcv2 <- regCVBwSelC(x=x, y=y, deg=1, kernel=gaussK)
+	
+	cat("Valor de h1:", hcv1$bw)
+	cat("Valor de h2:", hcv2)
+	
+	min_x <- min(x)
+	max_x <- max(x)
+	rejilla <- seq(min_x, max_x, length.out = 100) 
+	llcv <- npreg(bws = hcv1, txdat = x, tydat = y, exdat=rejilla)
+	plot(x, y)
+	lines(llcv$eval[,1], llcv$mean, lwd=2, col="blue")
+	
+	#------------Regresion con splines-----------------#
+	ss <- smooth.spline(x=x, y=y)
+	plot(x,y)
+	lines(ss, lwd=2, col="blue")
+	#-- predicciones --#
+	predict(ss, x=c(0,0.2,0.8))
